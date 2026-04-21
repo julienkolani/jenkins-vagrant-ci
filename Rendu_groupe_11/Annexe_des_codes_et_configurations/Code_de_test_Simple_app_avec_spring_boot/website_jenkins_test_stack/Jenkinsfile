@@ -1,0 +1,146 @@
+properties([
+    buildDiscarder(logRotator(numToKeepStr: '10'))
+])
+
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = 'julienkolaniyendoupabe/mon-app-spring'
+        IMAGE_TAG = "${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
+        DOCKERHUB_CREDS = credentials('dockerhub')
+        RC_URL = 'https://prisoners-ethical-affected-bond.trycloudflare.com/api/v1/chat.postMessage'
+        RC_TOKEN = 'pbpIJq4e8u_vvhoVjLm827Vu9XvNpxuuWF5BeeJnBg9'
+        RC_USER_ID = '3yqPEsu2Rhqdw9D7R'
+        RC_CHANNEL = '#ci_cd_jenkins'
+    }
+
+    stages {
+        stage('🔄 Checkout') {
+            steps {
+                echo "[1/7] Checkout de la branche ${env.BRANCH_NAME}..."
+                sleep 2
+                checkout scm
+                echo "✅ Checkout terminé"
+            }
+        }
+
+        stage('🧪 Tests en parallèle') {
+            parallel {
+                stage('🔍 Analyse statique') {
+                    steps {
+                        echo "[2/7] Checkstyle & SpotBugs..."
+                        sleep 1.5
+                        echo "✅ Analyse statique terminée"
+                    }
+                }
+                stage('🧪 Tests unitaires') {
+                    steps {
+                        echo "[2/7] Tests unitaires..."
+                        sleep 1.5
+                        echo "✅ Tests unitaires terminés"
+                    }
+                }
+                stage('🔀 Tests d\'intégration') {
+                    when {
+                        expression { env.BRANCH_NAME ==~ /main|develop/ }
+                    }
+                    steps {
+                        echo "[2/7] Tests d'intégration..."
+                        sleep 1.5
+                        echo "✅ Tests d'intégration terminés"
+                    }
+                }
+            }
+        }
+
+        stage('📦 Package & Artifact') {
+            steps {
+                echo "[3/7] Packaging du JAR..."
+                sleep 1
+                echo "📄 ./mvnw package -DskipTests"
+                echo "✅ Packaging terminé"
+            }
+        }
+
+        stage('🛠️ Build Docker') {
+            steps {
+                echo "[4/7] Docker build avec tag ${IMAGE_NAME}:${IMAGE_TAG}..."
+                sleep 2
+                echo "✅ Build Docker terminé"
+            }
+        }
+
+        stage('🚀 Push Docker Hub') {
+            when {
+                branch 'main'
+            }
+            steps {
+                echo "[5/7] Push Docker Hub..."
+                sleep 1.5
+                echo "✅ Push Docker terminé"
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "[6/7] ✅ Pipeline réussi pour ${env.BRANCH_NAME} #${env.BUILD_NUMBER}"
+            script {
+                def status = sh(
+                    script: """
+                    curl -X POST ${RC_URL} \
+                        -H 'Content-type: application/json' \
+                        -H 'X-Auth-Token: ${RC_TOKEN}' \
+                        -H 'X-User-Id: ${RC_USER_ID}' \
+                        -d '{
+                            "channel": "${RC_CHANNEL}",
+                            "text": ":white_check_mark: Pipeline ${env.JOB_NAME}#${env.BUILD_NUMBER} réussie ! (Simulation)",
+                            "attachments": [{
+                                "color": "#36a64f",
+                                "fields": [
+                                    {"title": "Branche", "value": "${env.BRANCH_NAME}", "short": true},
+                                    {"title": "Build", "value": "#${env.BUILD_NUMBER}", "short": true}
+                                ]
+                            }]
+                        }'
+                    """,
+                    returnStatus: true
+                )
+                if (status != 0) echo "⚠️ Envoi Rocket.Chat échoué"
+            }
+        }
+
+        failure {
+            echo "[6/7] ❌ Échec du pipeline"
+            script {
+                def status = sh(
+                    script: """
+                    curl -X POST ${RC_URL} \
+                        -H 'Content-type: application/json' \
+                        -H 'X-Auth-Token: ${RC_TOKEN}' \
+                        -H 'X-User-Id: ${RC_USER_ID}' \
+                        -d '{
+                            "channel": "${RC_CHANNEL}",
+                            "text": ":x: Pipeline ${env.JOB_NAME}#${env.BUILD_NUMBER} échouée ! (Simulation)",
+                            "attachments": [{
+                                "color": "#ff0000",
+                                "fields": [
+                                    {"title": "Branche", "value": "${env.BRANCH_NAME}", "short": true},
+                                    {"title": "Build", "value": "#${env.BUILD_NUMBER}", "short": true}
+                                ]
+                            }]
+                        }'
+                    """,
+                    returnStatus: true
+                )
+                if (status != 0) echo "⚠️ Envoi Rocket.Chat échoué"
+            }
+        }
+
+        always {
+            echo "🧹 Nettoyage..."
+            cleanWs()
+        }
+    }
+}

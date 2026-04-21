@@ -1,0 +1,7 @@
+.vagrant/
+*.log
+__pycache__/
+*.py[cod]
+.env
+*.box
+venv/

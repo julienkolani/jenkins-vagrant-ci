@@ -1,0 +1,21 @@
+Vagrant.configure("2") do |config|
+  config.vm.box = "ubuntu/focal64"
+
+  # Nom de la machine
+  config.vm.hostname = "jenkins-vm"
+
+  # Redirection de port : Jenkins (VM:8080 → hôte:8003)
+  config.vm.network "forwarded_port", guest: 8080, host: 8003, auto_correct: true
+
+  # Dossier synchronisé entre hôte et VM
+  config.vm.synced_folder ".", "/mnt/host_machine", create: true
+
+  # Provisioning avec script shell
+  config.vm.provision "shell", path: "provision.sh"
+
+  # Configuration VirtualBox (mémoire, CPU)
+  config.vm.provider "virtualbox" do |vb|
+    vb.memory = 2048
+    vb.cpus = 2
+  end
+end
