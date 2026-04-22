@@ -1,28 +1,23 @@
 # Jenkins Vagrant CI
 
-Infrastructure as Code for a Jenkins CI/CD server using Vagrant and VirtualBox. Provisions an automated Jenkins instance with a Flask application to demonstrate pipeline configuration.
+Infrastructure as Code pour un serveur Jenkins CI/CD provisionné automatiquement avec Vagrant.
 
-## Overview
+## Contenu
 
-Automates the setup of a Jenkins server in a VirtualBox VM using Vagrant provisioning. Includes a sample Python Flask application with a Jenkinsfile to demonstrate a complete CI/CD pipeline.
+- `vagrant-jenkins-master/` — Vagrantfile et script de provisioning
+- `Presentation_Jenkins/` — Application Flask de test de pipeline (Python)
+- `Rendu_groupe_11/` — Application Spring Boot avec Jenkinsfile, stack Docker Nginx + Jenkins, rapport CI/CD
 
-## Tech Stack
+## Stack technique
 
-- Vagrant
-- VirtualBox
-- Jenkins
-- Python / Flask
-- Docker
+- Vagrant, VirtualBox
+- Jenkins, Docker, Nginx
+- Python/Flask, Spring Boot (Java)
 
-## Setup
+## Utilisation
 
 ```bash
+cd vagrant-jenkins-master
 vagrant up
-# Access Jenkins at http://localhost:8080
+# Jenkins disponible sur http://localhost:8080
 ```
-
-## Structure
-
-- `Vagrantfile` - VM configuration and provisioning
-- `Dockerfile` - Container for pipeline steps
-- Flask app for pipeline testing
